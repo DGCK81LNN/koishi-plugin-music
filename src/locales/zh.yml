@@ -1,0 +1,28 @@
+commands:
+  musicjs:
+    description: 用 JavaScript 代码演奏旋律
+    usage: |-
+      函数及其参数说明：
+          note(tone: number, beats: number, temperament = 12)  创建平均律音符
+              tone  音符相对于基准音的偏移（默认情况下，单位为半音）
+              beats  音符时长（拍）
+              temperament  平均律的音阶数；决定了多少 tone 为一个八度
+          noteJust(ratio: number, beats: number)  创建纯律音符
+              ratio  音符音高与基准音频率的比值
+              beats  音符时长（拍）
+          noteHz(frequency: number, beats: number)  创建指定频率音高的音符
+              frequency  频率（赫兹）
+              beats  音符时长（拍）
+          rest(beats: number)  休止
+              beats  休止时长（拍）
+      变量说明——修改这些变量会影响后续创建音符的属性：
+          bpm: Number = 120  每分钟拍数
+              由于兼容原因，除非给该变量赋过值，否则读取该变量得到的是一个可以被隐式转换成数字的函数。
+          baseFrequency = 440  基准音频率
+          gain = 0.5  音量
+          time = 0  当前时间（秒）
+              调用 note、rest 等函数后此变量的值会自动增加。
+              修改此值后再添加音符可以使不同音符同时播放。
+    messages:
+      require-code: 缺少代码。
+      no-note: 未定义任何音符。
