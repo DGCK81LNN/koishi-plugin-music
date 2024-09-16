@@ -58,13 +58,14 @@ function encodeWav(samples) {
   writeInt16(16) // sample depth
   writeBytes("data")
   writeInt32(samples.length * 2) // size of data chunk
-  for (let i = 0; i < samples.length; i++) writeInt16(samples[i] * 0x7fff)
+  for (let i = 0; i < samples.length; i++)
+    writeInt16(Math.min(Math.max(samples[i] * 0x7fff, -32768), 32767))
 
   return buffer
 }
 
 // https://gist.github.com/jonleighton/958841
-window.arrayBufferToBase64 = function (arrayBuffer) {
+function arrayBufferToBase64(arrayBuffer) {
   var base64    = ''
   var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
   var bytes         = new Uint8Array(arrayBuffer)
