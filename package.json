@@ -1,12 +1,12 @@
 {
   "name": "@dgck81lnn/koishi-plugin-music",
   "description": "Synthesize melodies in Koishi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "dist"
+    "browser"
   ],
   "license": "MIT",
   "peerDependencies": {
