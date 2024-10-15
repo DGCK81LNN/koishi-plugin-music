@@ -1,6 +1,6 @@
 const sampleRate = 44100
 
-async function synth(notes) {
+async function synth(notes, { noise } = {}) {
   const seconds = Math.max(...notes.map(i => i.end))
 
   const ctx = new OfflineAudioContext(1, seconds * sampleRate, sampleRate)
@@ -24,6 +24,21 @@ async function synth(notes) {
     osc.stop(note.end)
     gain.gain.setValueAtTime(note.gain, note.start)
     gain.gain.linearRampToValueAtTime(0, note.end)
+  }
+
+  if (noise) {
+    // Add some white noise to avoid QQ's voice message encoding issues
+    const noiseBuf = ctx.createBuffer(1, Math.min(seconds, 10) * sampleRate, sampleRate)
+    for (let data = noiseBuf.getChannelData(0), i = 0; i < data.length; i++)
+      data[i] = Math.random() * 2 - 1
+    const noiseGain = ctx.createGain()
+    noiseGain.gain.value = 0.005
+    const noiseSrc = ctx.createBufferSource()
+    noiseSrc.buffer = noiseBuf
+    noiseSrc.loop = true
+    noiseSrc.connect(noiseGain)
+    noiseGain.connect(ctx.destination)
+    noiseSrc.start(0)
   }
 
   const buf = await ctx.startRendering()

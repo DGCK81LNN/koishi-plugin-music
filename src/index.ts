@@ -1,4 +1,4 @@
-import { Argv, Context, h, Schema } from "koishi"
+import { Argv, Computed, Context, h, Schema } from "koishi"
 import type {} from "koishi-plugin-puppeteer"
 
 import { resolve } from "path"
@@ -10,12 +10,16 @@ export const inject = ["puppeteer"]
 
 export interface Config {
   evalCommand: "glot" | "eval"
+  noise: Computed<boolean>
 }
 
 export const Config: Schema<Config> = Schema.object({
   evalCommand: Schema.union(["glot", "eval"])
     .default("glot")
     .description("用于安全执行 js 代码的指令。"),
+  noise: Schema.computed(Boolean)
+    .default(true)
+    .description("是否添加白噪音来尝试规避 QQ 的语音编码杂音问题。"),
 })
 
 type MusicContext = {
@@ -150,8 +154,11 @@ export function apply(ctx: Context, config: Config) {
 
       const page = await ctx.puppeteer.page()
       await page.goto(pathToFileURL(resolve(__dirname, "../browser/index.html")).href)
+      const opt = {
+        noise: session.resolve(config.noise),
+      }
       const base64 = (await page.evaluate(
-        `synth(${data}).then(encodeWav).then(arrayBufferToBase64)`
+        `synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
       )) as string
       page.close().catch(() => {})
       return h.audio("data:audio/wav;base64," + base64)
