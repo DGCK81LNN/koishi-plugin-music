@@ -132,7 +132,7 @@ export function apply(ctx: Context, config: Config) {
         return h.text(String(e))
       }
 
-      let gutteredCode = `(${gutterFunc})(${new Function("$", "with($){" + code + "}")})`
+      let gutteredCode = `(${gutterFunc})(function($){with($){\n${code}\n}})`
       if (config.evalCommand !== "eval")
         gutteredCode = `process.stdout.write(${gutteredCode})`
       ctx.logger.debug(config.evalCommand, gutteredCode)
