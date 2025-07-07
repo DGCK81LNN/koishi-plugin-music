@@ -125,7 +125,7 @@ export function apply(ctx: Context, config: Config) {
   ctx
     .command("musicjs <code:rawtext>", { strictOptions: true })
     .action(async ({ session }, code) => {
-      if (!code) return session.text(".require-code")
+      if (!code) return session.i18n(".require-code")
       try {
         new Function(code)
       } catch (e) {
@@ -145,7 +145,7 @@ export function apply(ctx: Context, config: Config) {
         terminator: "",
       })
       const data = h("", await session.execute(evalArgv, true)).toString(true)
-      if (!data) session.text(".no-note")
+      if (!data) return session.i18n(".no-note")
       try {
         ctx.logger.debug(JSON.parse(data))
       } catch {
