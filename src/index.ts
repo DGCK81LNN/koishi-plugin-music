@@ -1,8 +1,8 @@
 import { Argv, Computed, Context, h, Schema } from "koishi"
 import type {} from "koishi-plugin-puppeteer"
 
+import { readFile } from "fs/promises"
 import { resolve } from "path"
-import { pathToFileURL } from "url"
 
 export const name = "music"
 
@@ -122,6 +122,8 @@ const gutterFunc = (f: ($: MusicContext) => void) => {
 export function apply(ctx: Context, config: Config) {
   ctx.i18n.define("zh", require("./locales/zh"))
 
+  const synthCode = readFile(resolve(__dirname, "../browser/synth.js"), "utf-8")
+
   ctx
     .command("musicjs <code:rawtext>", { strictOptions: true })
     .action(async ({ session }, code) => {
@@ -153,12 +155,12 @@ export function apply(ctx: Context, config: Config) {
       }
 
       const page = await ctx.puppeteer.page()
-      await page.goto(pathToFileURL(resolve(__dirname, "../browser/index.html")).href)
       const opt = {
         noise: session.resolve(config.noise),
       }
       const base64 = (await page.evaluate(
-        `synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
+        // prettier-ignore
+        `${await synthCode}; synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
       )) as string
       page.close().catch(() => {})
       return h.audio("data:audio/wav;base64," + base64)
