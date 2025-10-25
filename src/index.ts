@@ -4,19 +4,27 @@ import type {} from "koishi-plugin-puppeteer"
 import { readFile } from "fs/promises"
 import { resolve } from "path"
 
-export const name = "music"
+export const name = "musicjs"
 
 export const inject = ["puppeteer"]
 
 export interface Config {
-  evalCommand: "glot" | "eval"
+  evalCommand: string
+  evalReturnMethod: "expr" | "process.stdout"
   noise: Computed<boolean>
 }
 
 export const Config: Schema<Config> = Schema.object({
-  evalCommand: Schema.union(["glot", "eval"])
-    .default("glot")
+  evalCommand: Schema.string()
+    .role("textarea")
+    .default("glot --language=javascript")
     .description("用于安全执行 js 代码的指令。"),
+  evalReturnMethod: Schema.union([
+    Schema.from("process.stdout" as const).description("process.stdout.write()（适用 glot 等指令）"),
+    Schema.from("expr" as const).description("表达式（适用 eval 等指令）"),
+  ])
+    .default("process.stdout")
+    .description("在 js 代码执行指令中返回结果的方式。"),
   noise: Schema.computed(Boolean)
     .default(true)
     .description("是否添加白噪音来尝试规避 QQ 的语音编码杂音问题。"),
@@ -135,9 +143,14 @@ export function apply(ctx: Context, config: Config) {
       }
 
       let gutteredCode = `(${gutterFunc})(function($){with($){\n${code}\n}})`
-      if (config.evalCommand !== "eval")
+      if (config.evalReturnMethod === "process.stdout")
         gutteredCode = `process.stdout.write(${gutteredCode})`
-      ctx.logger.debug(config.evalCommand, gutteredCode)
+      ctx.logger.debug(
+        "%o (%s) %o",
+        config.evalCommand,
+        config.evalReturnMethod,
+        gutteredCode
+      )
 
       const evalArgv = Argv.parse(config.evalCommand)
       evalArgv.tokens.push({
@@ -158,6 +171,7 @@ export function apply(ctx: Context, config: Config) {
       const opt = {
         noise: session.resolve(config.noise),
       }
+      ctx.logger.debug("synth options: %o", opt)
       const base64 = (await page.evaluate(
         // prettier-ignore
         `${await synthCode}; synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
