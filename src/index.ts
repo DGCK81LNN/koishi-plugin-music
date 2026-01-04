@@ -85,8 +85,11 @@ const gutterFunc = (f: ($: MusicContext) => void) => {
       this.noteHz(baseFrequency * ratio, beats)
     },
     noteHz(frequency, beats) {
-      if (![frequency, beats].every(Number.isFinite)) return
-      notes.push({ start: time, end: (time += (60 / +bpm) * beats), frequency, gain })
+      if (!Number.isFinite(beats)) return
+      const start = time
+      time += (60 / +bpm) * beats
+      if (!Number.isFinite(frequency)) return
+      notes.push({ start, end: time, frequency, gain })
     },
     rest(beats) {
       if (!Number.isFinite(beats)) return
