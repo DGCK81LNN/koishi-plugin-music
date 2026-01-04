@@ -20,7 +20,9 @@ export const Config: Schema<Config> = Schema.object({
     .default("glot --language=javascript")
     .description("用于安全执行 js 代码的指令。"),
   evalReturnMethod: Schema.union([
-    Schema.from("process.stdout" as const).description("process.stdout.write()（适用 glot 等指令）"),
+    Schema.from("process.stdout" as const).description(
+      "process.stdout.write()（适用 glot 等指令）"
+    ),
     Schema.from("expr" as const).description("表达式（适用 eval 等指令）"),
   ])
     .default("process.stdout")
@@ -83,10 +85,12 @@ const gutterFunc = (f: ($: MusicContext) => void) => {
       this.noteHz(baseFrequency * ratio, beats)
     },
     noteHz(frequency, beats) {
-      notes.push({ start: time, end: (time += (beats / +bpm) * 60), frequency, gain })
+      if (![frequency, beats].every(Number.isFinite)) return
+      notes.push({ start: time, end: (time += (60 / +bpm) * beats), frequency, gain })
     },
     rest(beats) {
-      time += (beats / +bpm) * 60
+      if (!Number.isFinite(beats)) return
+      time += (60 / +bpm) * beats
     },
     get bpm() {
       return bpm
@@ -168,15 +172,18 @@ export function apply(ctx: Context, config: Config) {
       }
 
       const page = await ctx.puppeteer.page()
-      const opt = {
-        noise: session.resolve(config.noise),
+      try {
+        const opt = {
+          noise: session.resolve(config.noise),
+        }
+        ctx.logger.debug("synth options: %o", opt)
+        const base64 = (await page.evaluate(
+          // prettier-ignore
+          `${await synthCode}; synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
+        )) as string
+        return h.audio("data:audio/wav;base64," + base64)
+      } finally {
+        page.close()
       }
-      ctx.logger.debug("synth options: %o", opt)
-      const base64 = (await page.evaluate(
-        // prettier-ignore
-        `${await synthCode}; synth(${data}, ${JSON.stringify(opt)}).then(encodeWav).then(arrayBufferToBase64)`
-      )) as string
-      page.close().catch(() => {})
-      return h.audio("data:audio/wav;base64," + base64)
     })
 }

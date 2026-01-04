@@ -9,32 +9,50 @@ async function synth(notes, { noise } = {}) {
 
   cmp.connect(ctx.destination)
 
+  let noiseBuf
+  const getNoise = () => {
+    if (!noiseBuf) {
+      noiseBuf = ctx.createBuffer(1, Math.min(seconds, 10) * sampleRate, sampleRate)
+      for (let data = noiseBuf.getChannelData(0), i = 0; i < data.length; i++)
+        data[i] = Math.random() * 2 - 1
+    }
+    return noiseBuf
+  }
+
   for (const note of notes) {
-    const osc = ctx.createOscillator()
+    if (!(note.frequency && note.end > note.start && note.gain > 0)) continue
+
     const gain = ctx.createGain()
-
-    osc.setPeriodicWave(wav)
-    osc.frequency.value = note.frequency
-
-    osc.connect(gain)
-    gain.connect(cmp)
-
-    osc.addEventListener("ended", () => osc.disconnect())
-    osc.start(note.start)
-    osc.stop(note.end)
     gain.gain.setValueAtTime(note.gain, note.start)
     gain.gain.linearRampToValueAtTime(0, note.end)
+    gain.connect(cmp)
+
+    let src
+    if (note.frequency < 0) {
+      src = ctx.createBufferSource()
+      src.buffer = getNoise()
+      src.loop = true
+      src.playbackRate.value = -note.frequency / sampleRate
+      src.connect(gain)
+    } else {
+      src = ctx.createOscillator()
+      src.setPeriodicWave(wav)
+      src.frequency.value = note.frequency
+      src.connect(gain)
+    }
+
+    src.start(note.start)
+    src.stop(note.end)
+    src.addEventListener("ended", () => gain.disconnect())
   }
 
   if (noise) {
     // Add some white noise to avoid QQ's voice message encoding issues
-    const noiseBuf = ctx.createBuffer(1, Math.min(seconds, 10) * sampleRate, sampleRate)
-    for (let data = noiseBuf.getChannelData(0), i = 0; i < data.length; i++)
-      data[i] = Math.random() * 2 - 1
+    getNoise()
     const noiseGain = ctx.createGain()
     noiseGain.gain.value = 0.005
     const noiseSrc = ctx.createBufferSource()
-    noiseSrc.buffer = noiseBuf
+    noiseSrc.buffer = getNoise()
     noiseSrc.loop = true
     noiseSrc.connect(noiseGain)
     noiseGain.connect(ctx.destination)
