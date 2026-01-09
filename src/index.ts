@@ -27,7 +27,7 @@ export const Config: Schema<Config> = Schema.object({
   ])
     .default("process.stdout")
     .description("在 js 代码执行指令中返回结果的方式。"),
-  noise: Schema.computed(Boolean)
+  noise: Schema.computed(Schema.boolean())
     .default(true)
     .description("是否添加白噪音来尝试规避 QQ 的语音编码杂音问题。"),
 })
@@ -180,7 +180,7 @@ export function apply(ctx: Context, config: Config) {
       const page = await ctx.puppeteer.page()
       try {
         const opt = {
-          noise: session.resolve(config.noise),
+          noise: session.resolve(config.noise) !== false, // workaround Schema.computed storing default (true) as null
         }
         ctx.logger.debug("synth options: %o", opt)
         const base64 = (await page.evaluate(
